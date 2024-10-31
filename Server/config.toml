@@ -1,0 +1,12 @@
+title = "Secure Reporting System (Server)"
+
+[server]
+port = 8080                 # Which port the server is listening on
+private_key = "server.key"  # Name/location of the server's private key file
+public_key = "server.pub"   # Name/location of the server's public key file
+
+[client]
+whitelist = [               # List of client IPs that are allowed to connect
+    "192.168.1.1",
+    "192.168.1.2",
+    ]
