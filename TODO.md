@@ -27,7 +27,7 @@ Ensure the program does the following:
 
 ### Server software
 Ensure the program does the following:
-- [ ] Generate public and private RSA-2048 keys
+- [x] Generate public and private RSA-2048 keys (Ashton)
   - The public key is configured in client config files
 - [ ] Receive the reports
   - Listen on the port specified in config
