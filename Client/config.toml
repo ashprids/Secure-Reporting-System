@@ -2,9 +2,11 @@ title = "Secure Reporting System (Client)"
 
 [client]
 level = 3                   # Access priority
+password = "password"       # Password for AES-256 encryption
+send_time = "21:00"         # Time of day to send reports
 targets = [                 # Locations of the log files to be reported
-    "path/to/file1",
-    "path/to/file2",
+    "file1.txt",
+    "file2.txt",
     ]
 
 [server]
