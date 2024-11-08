@@ -2,8 +2,9 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.backends import default_backend
 from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
 from datetime import datetime
-import os, socket, tomllib, base64
+import os, socket, tomllib, base64, hashlib
 
 
 
@@ -45,29 +46,50 @@ def start_server():
     server_socket=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind(("127.0.0.1", config["server"]["port"]))
     server_socket.listen(1)
-    print("\nServer started.\nListening on port", config["server"]["port"])
+    print("\nWaiting for incoming connections...\n")
 
     conn, addr = server_socket.accept()
     with conn:
 
         # Check if the client IP is allowed
         if addr[0] not in allowed_ips:
-            print("\nIncoming connection from "+addr[0]+" rejected (IP not whitelisted).")
+            print("["+addr[0]+"] Connection rejected (IP not whitelisted).")
             conn.close()
             return
         
         # Receive data and save in data variable
-        print("\nIncoming connection from:",addr[0])
+        print("["+addr[0]+"] Incoming connection")
         data = conn.recv(1024)
         full_data = data
-        while data:
+        while data: # Keep receiving data until it's all been received
             data = conn.recv(1024)
             full_data += data
-        print("Data received.")
+        print("["+addr[0]+"] Data received")
+
+        sha512 = full_data[:64]
+        report = full_data[64:].decode('utf-8')
+
+        # Decrypt the report data with the server's RSA private key
+        private_key = RSA.import_key(open("server_private-key.pem").read())
+        cipher = PKCS1_OAEP.new(private_key)
+
+        # Split the report into 214-character blocks and decrypt each block
+        decrypted_report = b''
+        for i in range(0, len(report), 344):  # 344 bytes per base64-encoded block
+            block = report[i:i+344]
+            decoded_block = base64.b64decode(block)  # Decode base64 to get the original 256 bytes
+            decrypted_block = cipher.decrypt(decoded_block)
+            decrypted_report += decrypted_block
+
+        # Verify SHA-512 checksum
+        if sha512 != hashlib.sha512(decrypted_report).digest():
+            print("["+addr[0]+"] ERROR: SHA-512 checksum mismatch. Operation aborted.")
+            return
+        print("["+addr[0]+"] SHA-512 checksum verified.")
 
         # Open report.toml and assign variables
         with open("report.toml", "wb") as f:
-            f.write(full_data)
+            f.write(decrypted_report)
         with open("report.toml", "rb") as f:
             report = tomllib.load(f)
 
@@ -79,6 +101,7 @@ def start_server():
         if not os.path.exists(save_path):
             os.makedirs(save_path)
 
+        # Decrypt and save each file with AES-256
         for key, value in report.items():
             if key in ["iv", "key", "data"]: # Skip any non-file data
                 continue
@@ -87,9 +110,10 @@ def start_server():
             with open(file_path, 'w') as f:
                 f.write(decrypted_data.decode().replace("\\n", "\n"))
             
-        print("\nLog files from", addr[0], "saved at Reports/"+save_path+":")
-        print("\n".join(os.listdir(save_path)))
-        #os.remove("report.toml")
+        print("["+addr[0]+"] Log files saved:")
+        for i in os.listdir(save_path):
+            print("            > "+i)
+        os.remove("report.toml")
 
 
 
@@ -104,6 +128,9 @@ if __name__ == "__main__":
         else:
             print("Operation cancelled.")
     elif option == "2":
-        start_server()
+        print("\nSecure Reporting System (Server) started successfully.")
+        print("Server Port:		"+str(config["server"]["port"]))
+        while True:
+            start_server()
     elif option == "3":
         exit()

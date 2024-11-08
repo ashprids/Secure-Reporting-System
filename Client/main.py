@@ -4,8 +4,9 @@ from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
 from typing import Tuple
-import os, socket, tomllib, schedule, time, threading, base64
+import os, socket, tomllib, schedule, time, threading, base64, hashlib
 
 
 
@@ -58,9 +59,9 @@ def send_reports():
 		for file in config["client"]["targets"]:
 			with open(file, "rb") as f2:
 				file_data = f2.read()
-				encrypted_data = encrypt(file_data, key, iv)
+				encrypted = encrypt(file_data, key, iv)
 				
-			f.write(file + ''' = """''' + base64.b64encode(encrypted_data).decode("utf-8") + '''"""\n''')
+			f.write(file + ''' = """''' + base64.b64encode(encrypted).decode("utf-8") + '''"""\n''')
 			print(f"Added {file} to report.")
 
 	# Connect to the server
@@ -68,32 +69,55 @@ def send_reports():
 	client_socket.connect((config["server"]["address"], config["server"]["port"]))
 	with open("report.toml", 'rb') as f:
 		report_data = f.read()
-	client_socket.sendall(report_data)
+
+	sha512 = hashlib.sha512(report_data).digest() # Generate SHA-512
+
+	# Encrypt the report data with the server's RSA public key.
+	# Because RSA can only encrypt small amounts of data, we need to split the data into blocks.
+	public_key = RSA.import_key(open("server_public-key.pem").read())
+	cipher = PKCS1_OAEP.new(public_key)
+	encrypted_blocks = []
+	for i in range(0, len(report_data), 190):
+		block = report_data[i:i+190]
+		encrypted_block = cipher.encrypt(block)
+		encrypted_blocks.append(base64.b64encode(encrypted_block))
+
+	client_socket.sendall(sha512)
+	for block in encrypted_blocks:
+		client_socket.sendall(block)
 	print (f"\nReport sent successfully.")
 	client_socket.close()
-	#os.remove("report.toml")
+	os.remove("report.toml")
+	prompt()
 
+
+def start_schedule():
+	print("\nSending reports automatically...")
+	send_reports()
 
 
 # Schedule the reports to be sent at a specific time
 def schedule_reports():
-	schedule.every().day.at(config["client"]["send_time"]).do(send_reports)
+	schedule.every().day.at(config["client"]["send_time"]).do(start_schedule)
 	while True:
 		schedule.run_pending()
 		time.sleep(60)
 
 
 
+# Prompt the user to send a report + notify them of the automatic report sending time
+def prompt():
+	print("\nReports will automatically send at", config["client"]["send_time"], "every day.")
+	if config["client"]["level"] == 3:
+		print("Press ENTER to send a report now. ")
+		input()
+		send_reports()
+
+
+
 if __name__ == "__main__":
 	threading.Thread(target=schedule_reports).start()
-	print("Secure Reporting System (Client) started successfully.\n")
+	print("Secure Reporting System (Client) started successfully.")
 	print("Server IP:		", config["server"]["address"])
 	print("Server Port:		", config["server"]["port"])
-	
-	while True:
-		print("\nReports will automatically send at", config["client"]["send_time"], "every day.")
-		choice = input("Press ENTER to send a report now. ")
-		if choice == "":
-			send_reports()
-		else:
-			exit()
+	prompt()

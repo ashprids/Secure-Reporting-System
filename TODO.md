@@ -20,7 +20,7 @@ Ensure the program does the following:
   - Time should be specified in the config file
   - Once sent, clear the log files (to prevent reports containing duplicate info)
 
-- [ ] Allow Level 3 systems to manually send reports
+- [x] Allow Level 3 systems to manually send reports
   - This functionality should exist in a separate python file from the server file
   - System levels specified in the config file
 
@@ -29,7 +29,7 @@ Ensure the program does the following:
 Ensure the program does the following:
 - [x] Generate public and private RSA-2048 keys (Ashton)
   - The public key is configured in client config files
-- [ ] Receive the reports
+- [x] Receive the reports
   - Listen on the port specified in config
   - Decrypt data with server private key, use SHA-256 key to decrypt reports and validate with SHA-512.
   - Only accept reports from IPs specified in server config file.
