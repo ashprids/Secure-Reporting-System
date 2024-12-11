@@ -7,3 +7,5 @@ Devon Lowis<br />
 Evan Morgan<br />
 Sofia Steinova
 
+Place the executables in the same directory as the correlating config.toml files.
+Each config.toml is specific to the client and server, so don't get them mixed up!
