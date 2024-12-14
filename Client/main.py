@@ -76,7 +76,7 @@ def send_reports():
 
 	# Encrypt the report data with the server's RSA public key.
 	# Because RSA can only encrypt small amounts of data, we need to split the data into blocks.
-	public_key = RSA.import_key(open("server_public-key.pem").read())
+	public_key = RSA.import_key(open(config["server"]["public_key"]).read())
 	cipher = PKCS1_OAEP.new(public_key)
 	encrypted_blocks = []
 	for i in range(0, len(report_data), 190):
