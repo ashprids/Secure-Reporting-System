@@ -44,6 +44,7 @@ def start_server():
 
     # Create a socket and listen for incoming connections
     server_socket=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Allow the socket to be reused
     server_socket.bind((config["server"]["ip"], config["server"]["port"]))
     server_socket.listen(1)
     print("\nWaiting for incoming connections...\n")
@@ -70,7 +71,7 @@ def start_server():
         report = full_data[64:].decode('utf-8')
 
         # Decrypt the report data with the server's RSA private key
-        private_key = RSA.import_key(open("server_private-key.pem").read())
+        private_key = RSA.import_key(open(config["server"]["private_key"]).read())
         cipher = PKCS1_OAEP.new(private_key)
 
         # Split the report into 214-character blocks and decrypt each block
