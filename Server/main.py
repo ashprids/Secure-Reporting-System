@@ -44,7 +44,7 @@ def start_server():
 
     # Create a socket and listen for incoming connections
     server_socket=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(("127.0.0.1", config["server"]["port"]))
+    server_socket.bind((config["server"]["ip"], config["server"]["port"]))
     server_socket.listen(1)
     print("\nWaiting for incoming connections...\n")
 
@@ -129,6 +129,7 @@ if __name__ == "__main__":
             print("Operation cancelled.")
     elif option == "2":
         print("\nSecure Reporting System (Server) started successfully.")
+        print("Server IP:       	"+str(config["server"]["ip"]))
         print("Server Port:		"+str(config["server"]["port"]))
         while True:
             start_server()
